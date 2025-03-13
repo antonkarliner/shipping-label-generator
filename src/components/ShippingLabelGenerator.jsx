@@ -282,13 +282,13 @@ const handleCreatePDF = async () => {
           <p className="mb-2">
           A free and open-source tool for creating 4x6" shipping labels. While many providers offer pre-optimized labels, some national postal services provide stamps of varying sizes. This tool helps you format all necessary details, avoiding the need to print stamps separately and fill out addresses by hand. All the processing is done inside your browser.
           </p>
-          <p>You can request additional providers via <a href="#" className="text-blue-600 hover:underline">GitHub issues</a>.</p>
+          <p>You can request additional providers via <a href="https://github.com/antonkarliner/shipping-label-generator/issues" className="text-blue-600 hover:underline">GitHub issues</a>.</p>
           <p><strong>Note!</strong> Currently only extracts the first stamp from PDF.</p>
         </div>
       </div>
     </div>
     <a 
-      href="#" 
+      href="https://github.com/antonkarliner/shipping-label-generator" 
       target="_blank" 
       rel="noopener noreferrer" 
       className="text-gray-700 hover:text-gray-900 self-start"
