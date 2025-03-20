@@ -21,10 +21,13 @@ const ShippingLabelGenerator = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [language, setLanguage] = useState('en');
   const [selectedProvider, setSelectedProvider] = useState('');
+  const [previousAddresses, setPreviousAddresses] = useState([]);
+  const [showPreviousAddresses, setShowPreviousAddresses] = useState(false);
   
   const fileInputRef = useRef(null);
   const pdfFileInputRef = useRef(null);
 
+  // Load PDF providers
   useEffect(() => {
     const loadProviders = async () => {
       try {
@@ -43,8 +46,8 @@ const ShippingLabelGenerator = () => {
     loadProviders();
   }, []);
 
+  // Load saved sender address
   useEffect(() => {
-    // Load saved sender address
     const savedSender = localStorage.getItem('senderAddress');
     if (savedSender) {
       try {
@@ -55,10 +58,35 @@ const ShippingLabelGenerator = () => {
     }
   }, []);
   
+  // Save sender address whenever it changes
   useEffect(() => {
-    // Save sender address whenever it changes
     localStorage.setItem('senderAddress', JSON.stringify(senderAddress));
-  }, [senderAddress]); // This will run whenever senderAddress changes
+  }, [senderAddress]);
+
+  // Load the saved language when the component mounts
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    }
+  }, []);
+
+  // Save language to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  // Load saved recipient addresses on mount
+  useEffect(() => {
+    const savedRecipients = localStorage.getItem('recipientAddresses');
+    if (savedRecipients) {
+      try {
+        setPreviousAddresses(JSON.parse(savedRecipients));
+      } catch (error) {
+        console.error('Error parsing saved recipient addresses:', error);
+      }
+    }
+  }, []);
 
   const translations = {
     en: { from: 'FROM:', to: 'TO:', tracking: 'Tracking #:', notes: 'Notes:' },
@@ -113,7 +141,19 @@ const ShippingLabelGenerator = () => {
     pdfFileInputRef.current?.click();
   };
 
+  // When generating a label, save the current recipient address if it's not empty and not already saved.
   const handleGenerateLabel = () => {
+    const isAddressEmpty = Object.values(recipientAddress).every(val => !val);
+    if (!isAddressEmpty) {
+      const addressExists = previousAddresses.some(addr => 
+        JSON.stringify(addr) === JSON.stringify(recipientAddress)
+      );
+      if (!addressExists) {
+        const updatedAddresses = [...previousAddresses, recipientAddress];
+        setPreviousAddresses(updatedAddresses);
+        localStorage.setItem('recipientAddresses', JSON.stringify(updatedAddresses));
+      }
+    }
     setShowPreview(true);
   };
 
@@ -173,9 +213,9 @@ const ShippingLabelGenerator = () => {
         document.body.style.padding = originalPadding;
       }, 500);
     }, 100);
-};
+  };
 
-const handleCreatePDF = async () => {
+  const handleCreatePDF = async () => {
     const labelElement = document.querySelector('.printable-label');
     if (!labelElement) return;
     
@@ -250,7 +290,7 @@ const handleCreatePDF = async () => {
     } finally {
       document.body.removeChild(tempContainer);
     }
-};
+  };
 
   const handleReset = () => {
     setSenderAddress({ name: '', street: '', city: '', state: '', zip: '', country: '' });
@@ -259,44 +299,44 @@ const handleCreatePDF = async () => {
     setTrackingNumber('');
     setNotes('');
     setShowPreview(false);
-    localStorage.removeItem('senderAddress'); // Add this line
+    localStorage.removeItem('senderAddress');
   };
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-  {/* Header */}
-  <div className="flex justify-between items-center mb-2">
-    <div className="flex items-center">
-      <div className="mr-4 flex-shrink-0">
-        <Image 
-          src="/logo.svg" 
-          alt="Logo" 
-          width={64} 
-          height={64}
-          priority
-        />
-      </div>
-      <div>
-        <h1 className="text-2xl font-bold mb-1">Shipping Label Generator</h1>
-        <div className="text-gray-600 text-sm">
-          <p className="mb-2">
-          A free and open-source tool for creating 4x6" shipping labels. While many providers offer pre-optimized labels, some national postal services provide stamps of varying sizes. This tool helps you format all necessary details, avoiding the need to print stamps separately and fill out addresses by hand. All the processing is done inside your browser.
-          </p>
-          <p>You can request additional providers via <a href="https://github.com/antonkarliner/shipping-label-generator/issues" className="text-blue-600 hover:underline">GitHub issues</a>.</p>
-          <p><strong>Note!</strong> Currently only extracts the first stamp from PDF.</p>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center">
+          <div className="mr-4 flex-shrink-0">
+            <Image 
+              src="/logo.svg" 
+              alt="Logo" 
+              width={64} 
+              height={64}
+              priority
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Shipping Label Generator</h1>
+            <div className="text-gray-600 text-sm">
+              <p className="mb-2">
+                A free and open-source tool for creating 4x6" shipping labels. While many providers offer pre-optimized labels, some national postal services provide stamps of varying sizes. This tool helps you format all necessary details, avoiding the need to print stamps separately and fill out addresses by hand. All the processing is done inside your browser.
+              </p>
+              <p>You can request additional providers via <a href="https://github.com/antonkarliner/shipping-label-generator/issues" className="text-blue-600 hover:underline">GitHub issues</a>.</p>
+              <p><strong>Note!</strong> Currently only extracts the first stamp from PDF.</p>
+            </div>
+          </div>
         </div>
+        <a 
+          href="https://github.com/antonkarliner/shipping-label-generator" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-gray-700 hover:text-gray-900 self-start"
+          title="View source on GitHub"
+        >
+          <Github size={28} />
+        </a>
       </div>
-    </div>
-    <a 
-      href="https://github.com/antonkarliner/shipping-label-generator" 
-      target="_blank" 
-      rel="noopener noreferrer" 
-      className="text-gray-700 hover:text-gray-900 self-start"
-      title="View source on GitHub"
-    >
-      <Github size={28} />
-    </a>
-  </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form Inputs */}
@@ -337,39 +377,39 @@ const handleCreatePDF = async () => {
                 {stampImage && <span className="text-green-600">✓ Uploaded</span>}
               </div>
               <div className="flex items-center gap-4 w-full">
-      <select
-        value={selectedProvider}
-        onChange={(e) => setSelectedProvider(e.target.value)}
-        className="p-2 border rounded w-4/10 min-w-[120px] whitespace-normal break-words"
-        disabled={Object.keys(pdfProviders).length === 0}
-      >
-        {Object.keys(pdfProviders).map((providerKey) => (
-          <option 
-            key={providerKey} 
-            value={providerKey}
-            className="break-words whitespace-normal"
-          >
-            {pdfProviders[providerKey]?.displayName || providerKey}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={triggerPDFInput}
-        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex-1"
-        disabled={!selectedProvider}
-      >
-        Extract Stamp from PDF
-      </button>
-      <input
-        type="file"
-        ref={pdfFileInputRef}
-        onChange={handlePDFUpload}
-        accept="application/pdf"
-        className="hidden"
-      />
-    </div>
-  </div>
-</div>
+                <select
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  className="p-2 border rounded w-4/10 min-w-[120px] whitespace-normal break-words"
+                  disabled={Object.keys(pdfProviders).length === 0}
+                >
+                  {Object.keys(pdfProviders).map((providerKey) => (
+                    <option 
+                      key={providerKey} 
+                      value={providerKey}
+                      className="break-words whitespace-normal"
+                    >
+                      {pdfProviders[providerKey]?.displayName || providerKey}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={triggerPDFInput}
+                  className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 flex-1"
+                  disabled={!selectedProvider}
+                >
+                  Extract Stamp from PDF
+                </button>
+                <input
+                  type="file"
+                  ref={pdfFileInputRef}
+                  onChange={handlePDFUpload}
+                  accept="application/pdf"
+                  className="hidden"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Sender Address */}
           <div className="border p-4 rounded">
@@ -487,6 +527,34 @@ const handleCreatePDF = async () => {
                 />
               </div>
             </div>
+            {/* Button to toggle previous addresses */}
+            <div className="mt-2">
+              <button
+                onClick={() => setShowPreviousAddresses(prev => !prev)}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Previous addresses
+              </button>
+            </div>
+            {/* Display saved addresses */}
+            {showPreviousAddresses && previousAddresses.length > 0 && (
+              <div className="mt-2 border p-2 rounded bg-gray-50 max-h-48 overflow-auto">
+                {previousAddresses.map((addr, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setRecipientAddress(addr)}
+                    className="p-2 hover:bg-gray-200 cursor-pointer"
+                  >
+                    <div className="font-bold">{addr.name}</div>
+                    <div>{addr.street}</div>
+                    <div>
+                      {addr.city}, {addr.state} {addr.zip}
+                    </div>
+                    <div>{addr.country}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Additional Details */}
@@ -579,24 +647,23 @@ const handleCreatePDF = async () => {
               
               {/* Addresses & Details */}
               <div
-  className="addresses flex justify-between mt-2"
-  style={{
-    flex: '1',
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '0 0.5rem',
-    wordSpacing: 'normal', // Add this
-    whiteSpace: 'normal' // Add this
-  }}
->
-
+                className="addresses flex justify-between mt-2"
+                style={{
+                  flex: '1',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0 0.5rem',
+                  wordSpacing: 'normal',
+                  whiteSpace: 'normal'
+                }}
+              >
                 <div className="from text-sm break-words" style={{ 
-  width: '50%', 
-  paddingRight: '0.25rem',
-  wordSpacing: 'normal',
-  letterSpacing: 'normal',
-  whiteSpace: 'normal'
-}}>
+                  width: '50%', 
+                  paddingRight: '0.25rem',
+                  wordSpacing: 'normal',
+                  letterSpacing: 'normal',
+                  whiteSpace: 'normal'
+                }}>
                   <div className="font-semibold">{translations[language].from}</div>
                   <div>{senderAddress.name}</div>
                   <div>{senderAddress.street}</div>
@@ -611,12 +678,12 @@ const handleCreatePDF = async () => {
                   )}
                 </div>
                 <div className="to text-sm break-words" style={{ 
-  width: '50%', 
-  paddingLeft: '0.25rem',
-  wordSpacing: 'normal',
-  letterSpacing: 'normal',
-  whiteSpace: 'normal'
-}}>
+                  width: '50%', 
+                  paddingLeft: '0.25rem',
+                  wordSpacing: 'normal',
+                  letterSpacing: 'normal',
+                  whiteSpace: 'normal'
+                }}>
                   <div className="font-semibold">{translations[language].to}</div>
                   <div className="font-bold">{recipientAddress.name}</div>
                   <div>{recipientAddress.street}</div>
